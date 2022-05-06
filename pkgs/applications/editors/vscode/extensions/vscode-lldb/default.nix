@@ -1,11 +1,11 @@
 { lib, stdenv, fetchFromGitHub, rustPlatform, makeWrapper, callPackage
-, nodePackages, cmake, nodejs, unzip, python3
+, nodePackages, cmake, nodejs, unzip, python3, pkg-config, libsecret
 }:
 assert lib.versionAtLeast python3.version "3.5";
 let
   publisher = "vadimcn";
   pname = "vscode-lldb";
-  version = "1.6.10";
+  version = "1.7.0";
 
   vscodeExtUniqueId = "${publisher}.${pname}";
 
@@ -13,7 +13,7 @@ let
     owner = "vadimcn";
     repo = "vscode-lldb";
     rev = "v${version}";
-    sha256 = "sha256-4PM/818UFHRZekfbdhS/Rz0Pu6HOjJEldi4YuBWECnI=";
+    sha256 = "sha256-1d9Yf6cnJBb5RyhQ24sQylWyzNDlSkyBkvd+S0ioQBA=";
   };
 
   lldb = callPackage ./lldb.nix {};
@@ -25,7 +25,7 @@ let
     # It will pollute the build environment of `buildRustPackage`.
     cargoPatches = [ ./reset-cargo-config.patch ];
 
-    cargoSha256 = "sha256-Ch1X2vN+p7oCqSs/GIu5IzG+pcSKmQ+VwP2T8ycRhos=";
+    cargoSha256 = "sha256-GUPeFIGc6ZdXhmUq66t/k0rhWHWijv6hRMWJ6ih1W+U=";
 
     nativeBuildInputs = [ makeWrapper ];
 
@@ -42,7 +42,11 @@ let
     doCheck = false;
   };
 
-  nodeDeps = nodePackages."vscode-lldb-build-deps-../../applications/editors/vscode/extensions/vscode-lldb/build-deps";
+  nodeDeps = nodePackages
+    ."vscode-lldb-build-deps-../../applications/editors/vscode/extensions/vscode-lldb/build-deps"
+    .override {
+      nativeBuildInputs = [ pkg-config libsecret ];
+    };
 
 in stdenv.mkDerivation {
   pname = "vscode-extension-${publisher}-${pname}";
@@ -52,7 +56,7 @@ in stdenv.mkDerivation {
 
   nativeBuildInputs = [ cmake nodejs unzip makeWrapper ];
 
-  patches = [ ./cmake-build-extension-only.patch ];
+  patches = [ ./cmake-build-extension-only.patch ./cmake-vsce-echo-y.patch ];
 
   postConfigure = ''
     cp -r ${nodeDeps}/lib/node_modules/vscode-lldb/{node_modules,package-lock.json} .
